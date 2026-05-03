@@ -1,71 +1,60 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>NDS Fix for Safari</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>NDS Fix</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
-        #status-box { border: 1px solid #333; padding: 20px; border-radius: 10px; background: #111; margin-bottom: 20px; }
-        .ready { color: #00ff00; }
-        .loading { color: #ffcc00; }
-        #game-area { width: 100%; max-width: 800px; height: 600px; margin: 0 auto; background: #050505; position: relative; }
-        .btn { background: #00f2ff; color: #000; padding: 15px 30px; border: none; border-radius: 8px; font-weight: bold; display: none; cursor: pointer; }
+        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        #player-container { width: 100%; max-width: 600px; height: 400px; background: #111; border: 2px solid #333; }
+        .controls { margin-top: 20px; }
+        .btn { background: #00f2ff; color: #000; padding: 20px; border-radius: 10px; font-weight: bold; border: none; width: 250px; }
     </style>
 </head>
 <body>
 
-    <div id="status-box">
-        <h2>Konsola NDS</h2>
-        <p id="msg" class="loading">Sprawdzanie Service Workera...</p>
-        <button id="start-btn" class="btn" onclick="document.getElementById('inp').click()">WYBIERZ PLIK .NDS</button>
-        <input type="file" id="inp" accept=".nds" style="display:none">
+    <div id="status">Inicjalizacja...</div>
+    
+    <div class="controls">
+        <input type="file" id="file" accept=".nds" style="display:none">
+        <button class="btn" id="load-btn" style="display:none" onclick="document.getElementById('file').click()">OTWÓRZ PLIK .NDS</button>
     </div>
 
-    <div id="game-area">
-        <div id="player"></div>
+    <div id="player-container">
+        <div id="game"></div>
     </div>
 
     <script>
-        const msg = document.getElementById('msg');
-        const btn = document.getElementById('start-btn');
-
-        async function initSystem() {
-            if (!("serviceWorker" in navigator)) {
-                msg.innerText = "Safari jest za stare lub zablokowane.";
-                return;
-            }
-
-            const reg = await navigator.serviceWorker.register('sw.js');
-            
-            // Czekamy na aktywny kontroler
-            if (!navigator.serviceWorker.controller) {
-                msg.innerText = "Aktywacja zabezpieczeń... Czekaj.";
-                location.reload(); // Safari MUSI się przeładować, żeby SW zaczął działać
-                return;
-            }
-
-            msg.innerText = "System gotowy! Możesz wczytać grę.";
-            msg.className = "ready";
-            btn.style.display = "inline-block";
+        // Sprawdzenie czy Service Worker działa
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                if (!navigator.serviceWorker.controller) {
+                    // Krytyczne dla Safari: musi być reload po rejestracji SW
+                    window.location.reload();
+                } else {
+                    document.getElementById('status').innerText = "System Gotowy (Safari)";
+                    document.getElementById('load-btn').style.display = "block";
+                }
+            });
         }
 
-        initSystem();
-
-        document.getElementById('inp').onchange = function(e) {
+        document.getElementById('file').onchange = function(e) {
             const file = e.target.files[0];
-            if (!file) return;
+            if(!file) return;
 
-            msg.innerText = "Ładowanie rdzenia emulatora... (może to potrwać 30s)";
-            
-            window.EJS_player = '#player';
-            window.EJS_core = 'nds'; 
+            document.getElementById('status').innerText = "Pobieranie silnika NDS...";
+
+            window.EJS_player = '#game';
+            window.EJS_core = 'nds'; // Możesz spróbować zmienić na 'desmume2015' jeśli nie ruszy
             window.EJS_gameUrl = URL.createObjectURL(file);
             window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
             window.EJS_startOnLoaded = true;
+            // Safari fix: wyłączenie SharedArrayBuffer jeśli to możliwe
+            window.EJS_threads = false; 
 
-            const s = document.createElement('script');
-            s.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-            document.head.appendChild(s);
+            const loader = document.createElement('script');
+            loader.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+            document.head.appendChild(loader);
         };
     </script>
 </body>
