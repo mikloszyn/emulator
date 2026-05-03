@@ -1,40 +1,62 @@
-// 🔗 TU WKLEJ URL DO CORE (.wasm)
-const CORE_URL = "ds.44670.org";
+// 1. Zegar systemowy
+function startClock() {
+    const clockEl = document.getElementById('clock');
+    const dateEl = document.getElementById('date');
+    
+    const update = () => {
+        const now = new Date();
+        clockEl.textContent = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+        dateEl.textContent = now.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+    
+    setInterval(update, 1000);
+    update();
+}
 
-let rom = null;
-let instance = null;
-let running = false;
+// 2. Obsługa ładowania gry
+const romInput = document.getElementById('rom-input');
+const emuWrapper = document.getElementById('emulator-wrapper');
+const topScreen = document.getElementById('top-screen');
 
-const canvas = document.getElementById("screen");
-const ctx = canvas.getContext("2d");
+function openFileSelector() {
+    romInput.click();
+}
 
-// 📂 Wczytanie ROM
-document.getElementById("romInput").addEventListener("change", e => {
-  const file = e.target.files[0];
-  const reader = new FileReader();
+romInput.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  reader.onload = () => {
-    rom = new Uint8Array(reader.result);
-    alert("ROM załadowany");
-  };
+    // Zmiana interfejsu na tryb gry
+    emuWrapper.style.display = 'block';
+    topScreen.innerHTML = '<div style="margin-top:120px">URUCHAMIANIE...</div>';
 
-  reader.readAsArrayBuffer(file);
-});
+    // Konfiguracja EmulatorJS
+    // UWAGA: Musisz posiadać folder /data/ z loader.js, nds.js i nds.wasm
+    window.EJS_player = '#emulator-target'; // Tu musi być ID diva wewnątrz wrapper
+    window.EJS_core = 'nds';
+    window.EJS_gameUrl = URL.createObjectURL(file);
+    window.EJS_pathtodata = 'data/'; 
+    window.EJS_startOnLoaded = true;
 
-// ▶️ START
-document.getElementById("startBtn").onclick = async () => {
-  if (!rom) return alert("Najpierw wybierz ROM");
-
-  instance = await loadCore();
-  startEmu();
+    // Ładowanie głównego loadera
+    const loaderScript = document.createElement('script');
+    loaderScript.src = 'data/loader.js';
+    document.head.appendChild(loaderScript);
 };
 
-// 📥 Pobieranie core
-async function loadCore() {
-  const res = await fetch(CORE_URL);
+// 3. Rejestracja Service Workera (Kluczowe dla Firefox)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+            console.log('DS System: Zabezpieczenia aktywne');
+        }).catch(err => {
+            console.error('DS System: Błąd krytyczny SW', err);
+        });
+    });
+}
 
-  if (!res.ok) {
-    alert("Błąd pobierania core");
+// Inicjalizacja zegara przy starcie
+document.addEventListener('DOMContentLoaded', startClock);    alert("Błąd pobierania core");
     throw new Error("fetch error");
   }
 
