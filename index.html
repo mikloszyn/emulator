@@ -1,44 +1,97 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NDS Emulator Web</title>
-<link rel="stylesheet" href="style.css">
-</head>
+    <meta charset="utf-8">
+    <title>DS OS Interface</title>
+    <style>
+        :root { --ds-blue: #00a2e8; --ds-grey: #e6e6e6; }
+        body { background: #222; color: #333; font-family: "Arial", sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; height: 100vh; overflow: hidden; }
 
+        /* Symulacja dwóch ekranów DS */
+        .ds-screen { width: 400px; height: 300px; background: white; border: 4px solid #111; position: relative; overflow: hidden; margin-bottom: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        
+        /* Menu Systemowe (Górny ekran) */
+        #top-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--ds-blue); color: white; }
+        .clock { font-size: 40px; font-weight: bold; }
+        .date { font-size: 18px; }
+
+        /* Dolny ekran (Menu wyboru) */
+        #bottom-screen { background: #fff; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 20px; box-sizing: border-box; }
+        .ds-slot { border: 2px solid #ccc; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .ds-slot:hover { background: #f0f0f0; border-color: var(--ds-blue); }
+        .icon { font-size: 40px; margin-bottom: 5px; }
+        
+        #emulator-target { width: 100%; height: 100%; display: none; position: absolute; top: 0; left: 0; z-index: 100; }
+        
+        .upload-overlay { position: absolute; bottom: 10px; color: #777; font-size: 12px; }
+    </style>
+</head>
 <body>
 
-<div id="ui">
-  <input type="file" id="romInput" accept=".nds">
+    <!-- GÓRNY EKRAN -->
+    <div class="ds-screen" id="top-screen">
+        <div class="clock" id="clock">12:00</div>
+        <div class="date" id="date">03.05.2026</div>
+        <p>Wybierz kartridż poniżej</p>
+    </div>
 
-  <select id="lang">
-    <option value="pl">PL</option>
-    <option value="en">EN</option>
-  </select>
+    <!-- DOLNY EKRAN -->
+    <div class="ds-screen" id="bottom-screen">
+        <div class="ds-slot" onclick="triggerUpload()">
+            <div class="icon">💾</div>
+            <span>Wczytaj ROM</span>
+        </div>
+        <div class="ds-slot" onclick="alert('Menu systemowe wymaga plików BIOS')">
+            <div class="icon">⚙️</div>
+            <span>Ustawienia</span>
+        </div>
+        <div class="ds-slot"></div>
+        <div class="ds-slot"></div>
+        
+        <input type="file" id="rom-input" accept=".nds" style="display:none">
+        <div id="emulator-target"></div>
+    </div>
 
-  <select id="mode">
-    <option value="vertical">DS (pion)</option>
-    <option value="horizontal">poziom</option>
-  </select>
+    <script>
+        // Zegar i Data
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('date').innerText = now.toLocaleDateString();
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-  <button id="startBtn">START</button>
-  <button id="shotBtn">📸</button>
-</div>
+        // Logika Emulatora
+        function triggerUpload() {
+            document.getElementById('rom-input').click();
+        }
 
-<canvas id="screen" width="256" height="384"></canvas>
+        document.getElementById('rom-input').onchange = function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
 
-<div id="controls">
-  <button data-k="UP">↑</button>
-  <button data-k="DOWN">↓</button>
-  <button data-k="LEFT">←</button>
-  <button data-k="RIGHT">→</button>
-  <button data-k="A">A</button>
-  <button data-k="B">B</button>
-  <button data-k="X">X</button>
-  <button data-k="Y">Y</button>
-</div>
+            // Chowanie menu i pokazanie emulatora
+            const emuDiv = document.getElementById('emulator-target');
+            emuDiv.style.display = "block";
+            document.getElementById('top-screen').innerHTML = "<p>Gra jest uruchomiona...</p>";
 
-<script src="app.js"></script>
+            // Konfiguracja pod Firefox (Lokalna)
+            window.EJS_player = '#emulator-target';
+            window.EJS_core = 'nds';
+            window.EJS_gameUrl = URL.createObjectURL(file);
+            window.EJS_pathtodata = './data/'; // Musisz mieć te pliki w folderze data!
+            window.EJS_startOnLoaded = true;
+
+            const loader = document.createElement('script');
+            loader.src = './data/loader.js';
+            document.head.appendChild(loader);
+        };
+
+        // Rejestracja Service Workera dla wątków (Firefox tego potrzebuje)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
 </body>
 </html>
