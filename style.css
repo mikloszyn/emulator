@@ -1,28 +1,101 @@
+:root {
+    --ds-bg: #f0f0f0;
+    --ds-blue: #00a2e8;
+    --ds-dark: #333;
+    --screen-border: #111;
+}
+
 body {
-  margin: 0;
-  background: #111;
-  color: white;
-  font-family: sans-serif;
-  text-align: center;
+    background: #222;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    gap: 15px;
 }
 
-#ui {
-  background: #222;
-  padding: 10px;
+.ds-screen {
+    width: 400px;
+    height: 300px;
+    background: white;
+    border: 6px solid var(--screen-border);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-canvas {
-  margin-top: 10px;
-  border: 2px solid #444;
-  max-width: 95vw;
+/* GÓRNY EKRAN */
+#top-screen {
+    background: linear-gradient(180deg, #0072bc 0%, #00a2e8 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
-button {
-  margin: 5px;
-  padding: 10px;
-  font-size: 16px;
+#top-screen .clock { font-size: 52px; font-weight: bold; margin: 0; }
+#top-screen .date { font-size: 20px; opacity: 0.9; }
+
+/* DOLNY EKRAN */
+#bottom-screen {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 12px;
+    padding: 15px;
+    background: #fff;
 }
 
-#controls {
-  margin-top: 10px;
+.menu-item {
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #fafafa;
+    transition: all 0.1s ease;
+}
+
+.menu-item:hover {
+    background: #f0f0f0;
+    border-color: var(--ds-blue);
+    transform: scale(0.98);
+}
+
+.menu-item .icon-box {
+    width: 60px;
+    height: 60px;
+    background: var(--ds-blue);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.menu-item span {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--ds-dark);
+}
+
+/* EKRAN EMULATORA (Nakładka) */
+#emulator-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: black;
+    display: none; /* Ukryty na starcie */
+    z-index: 999;
 }
