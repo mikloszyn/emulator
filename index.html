@@ -2,96 +2,150 @@
 <html lang="pl">
 <head>
     <meta charset="utf-8">
-    <title>DS OS Interface</title>
+    <title>Nintendo DS Web System</title>
     <style>
-        :root { --ds-blue: #00a2e8; --ds-grey: #e6e6e6; }
-        body { background: #222; color: #333; font-family: "Arial", sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; height: 100vh; overflow: hidden; }
+        body { background: #1a1a1a; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; color: white; }
+        
+        /* Obudowa konsoli */
+        .ds-unit { background: #333; padding: 20px; border-radius: 20px; border: 4px solid #444; }
 
-        /* Symulacja dwóch ekranów DS */
-        .ds-screen { width: 400px; height: 300px; background: white; border: 4px solid #111; position: relative; overflow: hidden; margin-bottom: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        
-        /* Menu Systemowe (Górny ekran) */
-        #top-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--ds-blue); color: white; }
-        .clock { font-size: 40px; font-weight: bold; }
-        .date { font-size: 18px; }
+        .screen {
+            width: 384px; 
+            height: 288px; 
+            background: black; 
+            border: 8px solid #111;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
 
-        /* Dolny ekran (Menu wyboru) */
-        #bottom-screen { background: #fff; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 20px; box-sizing: border-box; }
-        .ds-slot { border: 2px solid #ccc; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .ds-slot:hover { background: #f0f0f0; border-color: var(--ds-blue); }
-        .icon { font-size: 40px; margin-bottom: 5px; }
-        
-        #emulator-target { width: 100%; height: 100%; display: none; position: absolute; top: 0; left: 0; z-index: 100; }
-        
-        .upload-overlay { position: absolute; bottom: 10px; color: #777; font-size: 12px; }
+        /* Górny ekran - Informacyjny */
+        #top-screen {
+            background: #0084de;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .clock { font-size: 48px; font-weight: bold; }
+        .date { font-size: 18px; margin-top: 5px; opacity: 0.8; }
+
+        /* Dolny ekran - Menu dotykowe */
+        #bottom-screen {
+            background: #fdfdfd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .ds-btn {
+            width: 120px;
+            height: 120px;
+            background: #eee;
+            border: 3px solid #ccc;
+            border-radius: 15px;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .ds-btn:active { background: #ddd; transform: scale(0.95); }
+        .ds-btn b { font-size: 12px; margin-top: 10px; text-transform: uppercase; }
+
+        /* Warstwa emulatora */
+        #emu-container {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: black;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
 
-    <!-- GÓRNY EKRAN -->
-    <div class="ds-screen" id="top-screen">
-        <div class="clock" id="clock">12:00</div>
-        <div class="date" id="date">03.05.2026</div>
-        <p>Wybierz kartridż poniżej</p>
+<div class="ds-unit">
+    <!-- Górny ekran -->
+    <div class="screen" id="top-screen">
+        <div class="clock" id="time">00:00</div>
+        <div class="date" id="day">01 / 01</div>
     </div>
 
-    <!-- DOLNY EKRAN -->
-    <div class="ds-screen" id="bottom-screen">
-        <div class="ds-slot" onclick="triggerUpload()">
-            <div class="icon">💾</div>
-            <span>Wczytaj ROM</span>
+    <!-- Dolny ekran -->
+    <div class="screen" id="bottom-screen">
+        <div class="menu-grid">
+            <div class="ds-btn" onclick="openGame()">
+                <img src="https://cdn-icons-png.flaticon.com/512/5260/5260498.png" width="50">
+                <b>Gra (NDS)</b>
+            </div>
+            <div class="ds-btn" onclick="alert('Ustawienia wymagają pliku firmware.bin')">
+                <img src="https://cdn-icons-png.flaticon.com/512/3524/3524659.png" width="50">
+                <b>Opcje</b>
+            </div>
         </div>
-        <div class="ds-slot" onclick="alert('Menu systemowe wymaga plików BIOS')">
-            <div class="icon">⚙️</div>
-            <span>Ustawienia</span>
+
+        <!-- Tutaj pojawi się gra -->
+        <div id="emu-container">
+            <div id="game-target" style="width: 100%; height: 100%;"></div>
         </div>
-        <div class="ds-slot"></div>
-        <div class="ds-slot"></div>
+    </div>
+</div>
+
+<input type="file" id="rom-input" accept=".nds" style="display:none">
+
+<script>
+    // Obsługa Zegara
+    function updateDSClock() {
+        const now = new Date();
+        document.getElementById('time').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+        document.getElementById('day').innerText = now.getDate().toString().padStart(2, '0') + " / " + (now.getMonth() + 1).toString().padStart(2, '0');
+    }
+    setInterval(updateDSClock, 1000);
+    updateDSClock();
+
+    // Obsługa Emulatora
+    function openGame() {
+        document.getElementById('rom-input').click();
+    }
+
+    document.getElementById('rom-input').onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        document.getElementById('emu-container').style.display = "block";
+        document.getElementById('top-screen').innerHTML = "<p>Wczytywanie rdzenia...</p>";
+
+        // Konfiguracja
+        window.EJS_player = '#game-target';
+        window.EJS_core = 'nds'; 
+        window.EJS_gameUrl = URL.createObjectURL(file);
         
-        <input type="file" id="rom-input" accept=".nds" style="display:none">
-        <div id="emulator-target"></div>
-    </div>
+        // KLUCZOWE: Ustawienie ścieżki do folderu z silnikiem na Twoim GitHubie
+        window.EJS_pathtodata = 'data/'; 
+        window.EJS_startOnLoaded = true;
 
-    <script>
-        // Zegar i Data
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            document.getElementById('date').innerText = now.toLocaleDateString();
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
+        // Załadowanie silnika
+        const loader = document.createElement('script');
+        loader.src = 'data/loader.js';
+        document.head.appendChild(loader);
+    };
 
-        // Logika Emulatora
-        function triggerUpload() {
-            document.getElementById('rom-input').click();
-        }
+    // Rejestracja Service Workera dla Firefox (Wymagane!)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+</script>
 
-        document.getElementById('rom-input').onchange = function(e) {
-            const file = e.target.files[0];
-            if(!file) return;
-
-            // Chowanie menu i pokazanie emulatora
-            const emuDiv = document.getElementById('emulator-target');
-            emuDiv.style.display = "block";
-            document.getElementById('top-screen').innerHTML = "<p>Gra jest uruchomiona...</p>";
-
-            // Konfiguracja pod Firefox (Lokalna)
-            window.EJS_player = '#emulator-target';
-            window.EJS_core = 'nds';
-            window.EJS_gameUrl = URL.createObjectURL(file);
-            window.EJS_pathtodata = './data/'; // Musisz mieć te pliki w folderze data!
-            window.EJS_startOnLoaded = true;
-
-            const loader = document.createElement('script');
-            loader.src = './data/loader.js';
-            document.head.appendChild(loader);
-        };
-
-        // Rejestracja Service Workera dla wątków (Firefox tego potrzebuje)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
-    </script>
 </body>
 </html>
