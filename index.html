@@ -1,61 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="pl">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>NDS Fix</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NDS Cloud Player</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        #player-container { width: 100%; max-width: 600px; height: 400px; background: #111; border: 2px solid #333; }
-        .controls { margin-top: 20px; }
-        .btn { background: #00f2ff; color: #000; padding: 20px; border-radius: 10px; font-weight: bold; border: none; width: 250px; }
+        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; text-align: center; }
+        .container { padding: 20px; }
+        #game-box { width: 100%; max-width: 600px; height: 450px; background: #111; margin: 20px auto; border: 1px solid #444; }
+        .btn { background: #00f2ff; color: #000; padding: 15px 30px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; }
+        #status { font-size: 14px; color: #888; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="status">Inicjalizacja...</div>
+<div class="container">
+    <h2>NDS Player</h2>
+    <div id="status">Sprawdzanie połączenia...</div>
     
-    <div class="controls">
-        <input type="file" id="file" accept=".nds" style="display:none">
-        <button class="btn" id="load-btn" style="display:none" onclick="document.getElementById('file').click()">OTWÓRZ PLIK .NDS</button>
+    <input type="file" id="rom-file" accept=".nds" style="display:none">
+    <button class="btn" id="load-btn" onclick="document.getElementById('rom-file').click()">OTWÓRZ GRĘ (.NDS)</button>
+
+    <div id="game-box">
+        <div id="ejs-target"></div>
     </div>
+</div>
 
-    <div id="player-container">
-        <div id="game"></div>
-    </div>
+<!-- Kluczowa zmiana: Ładujemy silnik z pewniejszego źródła -->
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(() => {
+            if (!navigator.serviceWorker.controller) {
+                location.reload();
+            } else {
+                document.getElementById('status').innerText = "System Gotowy";
+            }
+        });
+    }
 
-    <script>
-        // Sprawdzenie czy Service Worker działa
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').then(reg => {
-                if (!navigator.serviceWorker.controller) {
-                    // Krytyczne dla Safari: musi być reload po rejestracji SW
-                    window.location.reload();
-                } else {
-                    document.getElementById('status').innerText = "System Gotowy (Safari)";
-                    document.getElementById('load-btn').style.display = "block";
-                }
-            });
-        }
+    document.getElementById('rom-file').onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-        document.getElementById('file').onchange = function(e) {
-            const file = e.target.files[0];
-            if(!file) return;
+        document.getElementById('status').innerText = "Wczytywanie: " + file.name;
 
-            document.getElementById('status').innerText = "Pobieranie silnika NDS...";
+        window.EJS_player = '#ejs-target';
+        window.EJS_core = 'nds';
+        window.EJS_gameUrl = URL.createObjectURL(file);
+        
+        // Zmieniony adres do danych - używamy wersji z GitHub Raw lub unpkg
+        window.EJS_pathtodata = 'https://raw.githack.com/EmulatorJS/EmulatorJS/main/data/';
+        window.EJS_startOnLoaded = true;
 
-            window.EJS_player = '#game';
-            window.EJS_core = 'nds'; // Możesz spróbować zmienić na 'desmume2015' jeśli nie ruszy
-            window.EJS_gameUrl = URL.createObjectURL(file);
-            window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
-            window.EJS_startOnLoaded = true;
-            // Safari fix: wyłączenie SharedArrayBuffer jeśli to możliwe
-            window.EJS_threads = false; 
+        const s = document.createElement('script');
+        s.src = 'https://raw.githack.com/EmulatorJS/EmulatorJS/main/data/loader.js';
+        document.head.appendChild(s);
+    };
+</script>
 
-            const loader = document.createElement('script');
-            loader.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-            document.head.appendChild(loader);
-        };
-    </script>
 </body>
 </html>
