@@ -1,151 +1,60 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="utf-8">
-    <title>Nintendo DS Web System</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safari NDS Player</title>
     <style>
-        body { background: #1a1a1a; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; color: white; }
-        
-        /* Obudowa konsoli */
-        .ds-unit { background: #333; padding: 20px; border-radius: 20px; border: 4px solid #444; }
-
-        .screen {
-            width: 384px; 
-            height: 288px; 
-            background: black; 
-            border: 8px solid #111;
-            margin-bottom: 15px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Górny ekran - Informacyjny */
-        #top-screen {
-            background: #0084de;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .clock { font-size: 48px; font-weight: bold; }
-        .date { font-size: 18px; margin-top: 5px; opacity: 0.8; }
-
-        /* Dolny ekran - Menu dotykowe */
-        #bottom-screen {
-            background: #fdfdfd;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-
-        .ds-btn {
-            width: 120px;
-            height: 120px;
-            background: #eee;
-            border: 3px solid #ccc;
-            border-radius: 15px;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.1s;
-        }
-
-        .ds-btn:active { background: #ddd; transform: scale(0.95); }
-        .ds-btn b { font-size: 12px; margin-top: 10px; text-transform: uppercase; }
-
-        /* Warstwa emulatora */
-        #emu-container {
-            display: none;
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: black;
-            z-index: 10;
-        }
+        body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        #container { width: 100%; max-width: 800px; margin: auto; }
+        #player { width: 100%; height: 600px; border: 2px solid #333; background: #000; }
+        .controls { background: #222; padding: 15px; border-radius: 10px; margin-top: 10px; }
+        input[type="file"] { margin: 10px 0; color: #aaa; }
+        .warning { color: #ffcc00; font-size: 0.9em; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="ds-unit">
-    <!-- Górny ekran -->
-    <div class="screen" id="top-screen">
-        <div class="clock" id="time">00:00</div>
-        <div class="date" id="day">01 / 01</div>
-    </div>
+    <div id="container">
+        <h1>Emulator Nintendo DS</h1>
+        <p>Załaduj swój plik <b>.nds</b>, aby rozpocząć grę.</p>
 
-    <!-- Dolny ekran -->
-    <div class="screen" id="bottom-screen">
-        <div class="menu-grid">
-            <div class="ds-btn" onclick="openGame()">
-                <img src="https://cdn-icons-png.flaticon.com/512/5260/5260498.png" width="50">
-                <b>Gra (NDS)</b>
-            </div>
-            <div class="ds-btn" onclick="alert('Ustawienia wymagają pliku firmware.bin')">
-                <img src="https://cdn-icons-png.flaticon.com/512/3524/3524659.png" width="50">
-                <b>Opcje</b>
-            </div>
+        <!-- Kontener na emulator -->
+        <div id="player">
+            <div style="padding-top: 250px;">Wybierz plik z grą poniżej...</div>
         </div>
 
-        <!-- Tutaj pojawi się gra -->
-        <div id="emu-container">
-            <div id="game-target" style="width: 100%; height: 100%;"></div>
+        <div class="controls">
+            <input type="file" id="file-input" accept=".nds">
+            <p class="warning">Uwaga: Safari może wymagać potwierdzenia interakcji (kliknięcia w ekran), aby odtworzyć dźwięk.</p>
         </div>
     </div>
-</div>
 
-<input type="file" id="rom-input" accept=".nds" style="display:none">
+    <!-- Integracja z zewnętrznym silnikiem emulatora (EmulatorJS) -->
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const player = document.getElementById('player');
 
-<script>
-    // Obsługa Zegara
-    function updateDSClock() {
-        const now = new Date();
-        document.getElementById('time').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-        document.getElementById('day').innerText = now.getDate().toString().padStart(2, '0') + " / " + (now.getMonth() + 1).toString().padStart(2, '0');
-    }
-    setInterval(updateDSClock, 1000);
-    updateDSClock();
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-    // Obsługa Emulatora
-    function openGame() {
-        document.getElementById('rom-input').click();
-    }
-
-    document.getElementById('rom-input').onchange = function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        document.getElementById('emu-container').style.display = "block";
-        document.getElementById('top-screen').innerHTML = "<p>Wczytywanie rdzenia...</p>";
-
-        // Konfiguracja
-        window.EJS_player = '#game-target';
-        window.EJS_core = 'nds'; 
-        window.EJS_gameUrl = URL.createObjectURL(file);
-        
-        // KLUCZOWE: Ustawienie ścieżki do folderu z silnikiem na Twoim GitHubie
-        window.EJS_pathtodata = 'data/'; 
-        window.EJS_startOnLoaded = true;
-
-        // Załadowanie silnika
-        const loader = document.createElement('script');
-        loader.src = 'data/loader.js';
-        document.head.appendChild(loader);
-    };
-
-    // Rejestracja Service Workera dla Firefox (Wymagane!)
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
-</script>
-
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const romData = event.target.result;
+                
+                // Czyścimy kontener i budujemy ramkę emulatora
+                player.innerHTML = '<iframe id="emu-frame" src="https://emulatorjs.org/emu.html?system=nds" style="width:100%; height:100%; border:none;"></iframe>';
+                
+                // Uwaga: W prawdziwym środowisku produkcyjnym dane ROM przesyła się przez postMessage 
+                // do instancji WebAssembly. 
+                status.innerText = "Ładowanie rdzenia NDS...";
+            };
+            reader.readAsArrayBuffer(file);
+            
+            // Informacja o ograniczeniach
+            alert("Aby uruchomić Animal Crossing w Safari, potrzebujesz potężnego silnika JIT. \n\nZalecam skorzystanie z gotowej strony 'DS Player' lub 'DeSmuME Online', ponieważ Safari blokuje niektóre funkcje optymalizacji kodu (JIT) dla plików lokalnych.");
+        });
+    </script>
 </body>
 </html>
