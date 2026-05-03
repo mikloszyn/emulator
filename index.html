@@ -2,75 +2,71 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NDS Mobile Player</title>
+    <title>NDS Fix for Safari</title>
     <style>
-        body { background: #0a0a0c; color: white; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .container { width: 95%; max-width: 800px; background: #16161e; padding: 20px; border-radius: 20px; border: 1px solid #333; text-align: center; box-sizing: border-box; }
-        #game { width: 100%; height: 500px; background: #000; border-radius: 10px; margin-top: 20px; position: relative; }
-        .btn { background: #00f2ff; color: black; padding: 15px 30px; border-radius: 12px; cursor: pointer; font-weight: bold; border: none; font-size: 16px; }
-        #status { margin-bottom: 10px; font-size: 14px; color: #888; }
+        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
+        #status-box { border: 1px solid #333; padding: 20px; border-radius: 10px; background: #111; margin-bottom: 20px; }
+        .ready { color: #00ff00; }
+        .loading { color: #ffcc00; }
+        #game-area { width: 100%; max-width: 800px; height: 600px; margin: 0 auto; background: #050505; position: relative; }
+        .btn { background: #00f2ff; color: #000; padding: 15px 30px; border: none; border-radius: 8px; font-weight: bold; display: none; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>NDS Player</h2>
-        <div id="status">Inicjalizacja systemu...</div>
-        <input type="file" id="file-in" accept=".nds" style="display:none">
-        <button id="main-btn" class="btn" style="display:none" onclick="document.getElementById('file-in').click()">WYBIERZ GRĘ .NDS</button>
-        
-        <div id="game">
-            <div id="ejs-player"></div>
-        </div>
+    <div id="status-box">
+        <h2>Konsola NDS</h2>
+        <p id="msg" class="loading">Sprawdzanie Service Workera...</p>
+        <button id="start-btn" class="btn" onclick="document.getElementById('inp').click()">WYBIERZ PLIK .NDS</button>
+        <input type="file" id="inp" accept=".nds" style="display:none">
+    </div>
+
+    <div id="game-area">
+        <div id="player"></div>
     </div>
 
     <script>
-        const status = document.getElementById('status');
-        const btn = document.getElementById('main-btn');
+        const msg = document.getElementById('msg');
+        const btn = document.getElementById('start-btn');
 
-        // FUNKCJA NAPRAWCZA DLA SAFARI I GITHUB
-        async function setupServiceWorker() {
-            if ("serviceWorker" in navigator) {
-                try {
-                    const registration = await navigator.serviceWorker.register("sw.js");
-                    console.log("SW zarejestrowany");
-                    
-                    // Jeśli to pierwsze uruchomienie, musimy przeładować stronę
-                    if (!navigator.serviceWorker.controller) {
-                        status.innerText = "Konfiguracja... Odświeżam za sekundę";
-                        setTimeout(() => location.reload(), 1000);
-                        return;
-                    }
-                    
-                    status.innerText = "System gotowy";
-                    btn.style.display = "inline-block";
-                } catch (err) {
-                    status.innerText = "Błąd SW: " + err.message;
-                }
-            } else {
-                status.innerText = "Twoja przeglądarka nie wspiera emulatora.";
+        async function initSystem() {
+            if (!("serviceWorker" in navigator)) {
+                msg.innerText = "Safari jest za stare lub zablokowane.";
+                return;
             }
+
+            const reg = await navigator.serviceWorker.register('sw.js');
+            
+            // Czekamy na aktywny kontroler
+            if (!navigator.serviceWorker.controller) {
+                msg.innerText = "Aktywacja zabezpieczeń... Czekaj.";
+                location.reload(); // Safari MUSI się przeładować, żeby SW zaczął działać
+                return;
+            }
+
+            msg.innerText = "System gotowy! Możesz wczytać grę.";
+            msg.className = "ready";
+            btn.style.display = "inline-block";
         }
 
-        setupServiceWorker();
+        initSystem();
 
-        document.getElementById('file-in').addEventListener('change', function(e) {
+        document.getElementById('inp').onchange = function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            status.innerText = "Ładowanie: " + file.name;
+            msg.innerText = "Ładowanie rdzenia emulatora... (może to potrwać 30s)";
             
-            window.EJS_player = '#ejs-player';
+            window.EJS_player = '#player';
             window.EJS_core = 'nds'; 
             window.EJS_gameUrl = URL.createObjectURL(file);
             window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
             window.EJS_startOnLoaded = true;
 
-            const script = document.createElement('script');
-            script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-            document.head.appendChild(script);
-        });
+            const s = document.createElement('script');
+            s.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+            document.head.appendChild(s);
+        };
     </script>
 </body>
 </html>
