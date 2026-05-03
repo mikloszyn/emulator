@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>NDS Ultra Player</title>
+    <style>
+        body { background: #0a0a0c; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { width: 800px; background: #16161e; padding: 20px; border-radius: 20px; border: 1px solid #333; text-align: center; }
+        #status { color: #00f2ff; margin-bottom: 15px; font-weight: bold; }
+        #game { width: 100%; height: 500px; background: #000; border-radius: 10px; overflow: hidden; }
+        .file-label { background: #00f2ff; color: black; padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; display: inline-block; transition: 0.3s; }
+        .file-label:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(0, 242, 255, 0.4); }
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>NDS VIRTUAL CONSOLE</h2>
+        <div id="status">Status: Gotowy. Wybierz grę.</div>
+        
+        <label class="file-label">
+            WCZYTAJ PLIK .NDS
+            <input type="file" id="rom-input" accept=".nds">
+        </label>
+
+        <div id="game">
+            <div id="ejs-player"></div>
+        </div>
+    </div>
+
+    <script>
+        window.EJS_player = '#ejs-player';
+        window.EJS_core = 'nds'; 
+        window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+        window.EJS_startOnLoaded = true;
+
+        document.getElementById('rom-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('status').innerText = "Status: Uruchamianie gry...";
+            window.EJS_gameUrl = URL.createObjectURL(file);
+
+            const script = document.createElement('script');
+            script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+            document.head.appendChild(script);
+        });
+    </script>
+</body>
+</html>
